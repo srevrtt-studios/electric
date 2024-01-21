@@ -9,7 +9,7 @@ Analyzer::Analyzer(std::vector<Token> lexerTokens) {
   std::string currentFuncName = "";
   bool function = false;
 
-  while (idx < lexerTokens.size() - 1) {
+  while (idx < lexerTokens.size()) {
     Token currentTkn = lexerTokens[idx];
 
     if (currentTkn.value == "func") {
@@ -26,6 +26,42 @@ Analyzer::Analyzer(std::vector<Token> lexerTokens) {
       idx++;
 
       continue;
+    }
+
+    if (function) {
+      if (currentTkn.value == "}") {
+        analyzedTokens.push_back(Token { "$AT_FUNC_BODY_END", "" });
+      }
+
+      if (currentTkn.value == "." && idx > 1 && idx < lexerTokens.size() - 2) {
+        bool lua = false;
+
+        if (lexerTokens[idx - 1].value == "lua") {
+          lua = true;
+        }
+
+        idx++;
+        std::string funcCall = lexerTokens[idx].value + ":{";
+
+        idx += 2;
+        while (idx < lexerTokens.size() - 1 && lexerTokens[idx].value != ")") {
+          if (lexerTokens[idx + 1].value == ")") {
+            funcCall += lexerTokens[idx].value;
+          } else {
+            funcCall += lexerTokens[idx].value + ",";
+          }
+
+          idx++;
+        }
+
+        funcCall += "}";
+
+        if (lua) {
+          analyzedTokens.push_back(Token { "$AT_LUA_STD_CALL", funcCall });
+        } else {
+          analyzedTokens.push_back(Token { "$AT_STD_CALL", funcCall });
+        }
+      }
     }
 
     if (currentFuncName != "" && currentTkn.value == "(") {
